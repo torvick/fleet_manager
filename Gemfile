@@ -37,6 +37,7 @@ gem 'bootsnap', require: false
 
 gem 'active_model_serializers', '~> 0.10.15'
 gem 'pagy', '~> 9.4'
+gem 'pundit', '~> 2.4'
 
 group :development do
   gem 'debug', platforms: %i[mri windows]
@@ -51,6 +52,7 @@ end
 group :development, :test do
   gem 'factory_bot_rails', '~> 6.5'
   gem 'faker', '~> 3.5'
+  gem 'pundit-matchers', '~> 4.0'
   gem 'rspec-rails',         '~> 7.1'
   gem 'rubocop',             '~> 1.81', require: false
   gem 'rubocop-factory_bot', '~> 2.26', require: false

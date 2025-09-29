@@ -1,52 +1,113 @@
+# db/seeds.rb
 require 'faker'
 
-Rails.logger.debug 'Seeding...'
+Rails.logger.info '== Seeding =='
 
-if User.where(email: 'admin@example.com').none?
-  User.create!(email: 'admin@example.com', password: 'password123', role: 'admin')
-  Rails.logger.debug 'User admin@example.com created (password: password123)'
+# -------------------------------------------------
+# Config
+# -------------------------------------------------
+BRANDS_MODELS = {
+  'Toyota' => %w[Corolla Camry Hilux Yaris RAV4 Prius Avanza],
+  'Ford' => %w[Focus Fiesta Ranger Explorer Mustang Escape],
+  'Nissan' => %w[Sentra Versa March Frontier Altima X-Trail],
+  'Chevrolet' => %w[Aveo Onix Tracker Captiva Silverado Spark],
+  'Volkswagen' => %w[Jetta Virtus Taos Golf Vento Tiguan],
+  'Hyundai' => %w[Elantra Accent Tucson Creta i10 Kona],
+  'Kia' => %w[Rio Forte Sportage Seltos Soul Cerato],
+  'Honda' => %w[Civic City CR-V HR-V Fit Accord]
+}.freeze
+
+VEHICLE_COUNT        = 50
+SERVICES_PER_VEHICLE = 1..3
+SERVICE_DAYS_BACK    = 180
+CENTS_RANGE          = 2_000..100_000 # $20 – $1000
+
+# Enums reales
+VEHICLE_STATUSES = Vehicle.statuses.keys.map(&:to_sym) # [:active, :inactive, :in_maintenance]
+MS_STATUSES      = MaintenanceService.statuses.keys.map(&:to_sym) # [:pending, :in_progress, :completed]
+MS_PRIORITIES    = MaintenanceService.priorities.keys.map(&:to_sym) # [:low, :medium, :high]
+
+def random_weighted(keys)
+  keys.sample # simple y seguro, podrías hacer pesos si quieres
 end
 
-MaintenanceService.delete_all
+def unique_vin!
+  loop do
+    vin = Faker::Vehicle.vin
+    return vin unless Vehicle.exists?(vin: vin)
+  end
+end
+
+def mx_plate
+  letters = ('A'..'Z').to_a.sample(3).join
+  numbers = rand(100..999)
+  suffix  = ('A'..'Z').to_a.sample
+  "#{letters}#{numbers}#{suffix}"
+end
+
+def money_cents
+  rand(CENTS_RANGE)
+end
+
+# -------------------------------------------------
+# Usuarios demo
+# -------------------------------------------------
+users_data = [
+  { email: 'admin@example.com',   password: 'password123', role: :admin },
+  { email: 'manager@example.com', password: 'password123', role: :manager },
+  { email: 'viewer@example.com',  password: 'password123', role: :viewer }
+]
+
+users_data.each do |attrs|
+  user = User.find_or_initialize_by(email: attrs[:email])
+  if user.new_record?
+    user.assign_attributes(attrs)
+    user.save!
+    Rails.logger.info "User #{attrs[:email]} creado (#{attrs[:role]}) – pass: password123"
+  else
+    user.update!(role: attrs[:role]) unless user.role.to_s == attrs[:role].to_s
+  end
+end
+
+# -------------------------------------------------
+# Vehículos + servicios
+# -------------------------------------------------
 Vehicle.delete_all
+MaintenanceService.delete_all
 
-brands = %w[Toyota Ford Nissan Chevrolet Volkswagen Hyundai Kia Honda]
-models = %w[Corolla Focus Sentra Aveo Jetta Elantra Rio Civic]
+VEHICLE_COUNT.times do
+  brand  = BRANDS_MODELS.keys.sample
+  model  = BRANDS_MODELS[brand].sample
+  year   = rand(2010..Time.zone.today.year)
+  status = random_weighted(VEHICLE_STATUSES)
 
-vehicles = 50.times.map do
-  Vehicle.create!(
-    vin: Faker::Vehicle.vin,
-    plate: Faker::Vehicle.license_plate.gsub('-', '').upcase,
-    brand: brands.sample,
-    model: models.sample,
-    year: rand(2012..2025),
-    status: :active
+  v = Vehicle.create!(
+    vin: unique_vin!,
+    plate: mx_plate,
+    brand: brand,
+    model: model,
+    year: year,
+    status: status
   )
+
+  rand(SERVICES_PER_VEHICLE).times do
+    st = random_weighted(MS_STATUSES)
+    dt = Faker::Date.between(from: SERVICE_DAYS_BACK.days.ago, to: Date.current)
+
+    attrs = {
+      vehicle: v,
+      description: Faker::Vehicle.standard_specs.sample,
+      status: st,
+      date: dt,
+      cost_cents: money_cents,
+      priority: random_weighted(MS_PRIORITIES)
+    }
+    attrs[:completed_at] = Faker::Time.between(from: dt.to_time, to: Time.zone.now) if st == :completed
+
+    MaintenanceService.create!(attrs)
+  end
 end
 
-def random_cost
-  rand(2_000..100_000) # centavos
-end
-
-100.times do
-  v = vehicles.sample
-  st = %i[pending in_progress completed].sample
-  dt = Faker::Date.between(from: 120.days.ago, to: Time.zone.today)
-
-  attrs = {
-    vehicle: v,
-    description: Faker::Vehicle.standard_specs.sample,
-    status: st,
-    date: dt,
-    cost_cents: random_cost,
-    priority: %i[low medium high].sample
-  }
-
-  attrs[:completed_at] = Faker::Time.between(from: dt.to_time, to: Time.zone.now) if st == :completed
-
-  MaintenanceService.create!(attrs)
-end
-
-Rails.logger.debug { "Vehicles: #{Vehicle.count}" }
-Rails.logger.debug { "MaintenanceServices: #{MaintenanceService.count}" }
-Rails.logger.debug 'Done.'
+Rails.logger.info "Vehicles: #{Vehicle.count}"
+Rails.logger.info "MaintenanceServices: #{MaintenanceService.count}"
+Rails.logger.info '== Seeds done =='

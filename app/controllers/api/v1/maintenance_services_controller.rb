@@ -13,6 +13,7 @@ module Api
 
       # GET /api/v1/vehicles/:vehicle_id/maintenance_services
       def index
+        authorize MaintenanceService
         scope = apply_sort(filtered_scope)
         pagy, records = pagy(scope, items: params[:items].presence || Pagy::DEFAULT[:items])
 
@@ -28,6 +29,7 @@ module Api
 
       # GET /api/v1/maintenance_services/:id
       def show
+        authorize @ms
         render json: @ms,
                serializer: MaintenanceServiceSerializer,
                adapter: :attributes,
@@ -37,6 +39,7 @@ module Api
       # POST /api/v1/vehicles/:vehicle_id/maintenance_services
       def create
         ms = @vehicle.maintenance_services.new(ms_params)
+        authorize ms
         if ms.save
           render json: ms,
                  serializer: MaintenanceServiceSerializer,
@@ -49,6 +52,7 @@ module Api
 
       # PATCH/PUT /api/v1/maintenance_services/:id
       def update
+        authorize @ms
         if @ms.update(ms_params)
           render json: @ms,
                  serializer: MaintenanceServiceSerializer,
@@ -61,6 +65,7 @@ module Api
 
       # DELETE /api/v1/maintenance_services/:id
       def destroy
+        authorize @ms
         @ms.destroy!
         head :no_content
       end

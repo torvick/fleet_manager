@@ -33,6 +33,7 @@ Metrics/BlockLength:
     - 'db/migrate/*.rb'
     - 'config/environments/*.rb'
     - 'spec/**/*.rb'
+    - 'db/*.rb'
 
 Metrics/MethodLength:
   Exclude:

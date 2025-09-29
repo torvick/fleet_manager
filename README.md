@@ -8,6 +8,7 @@ Sistema de gestión de flotas de vehículos con API REST y interfaz web. Permite
 - **Rails** 7.1.x
 - **PostgreSQL** 14+
 - **JWT** para autenticación
+- **Pundit** para autorización por roles
 - **RSpec + FactoryBot** para testing
 - **Pagy** para paginación
 - **ActiveModelSerializers** para serialización JSON
@@ -45,10 +46,11 @@ rails server
 
 El servidor estará disponible en `http://localhost:3000`
 
-### Usuario de prueba
+### Usuarios de prueba
 Después del seed tendrás disponible:
-- **Email**: `admin@example.com`
-- **Password**: `password123`
+- **Admin**: `admin@example.com` / `password123` (Todos los permisos)
+- **Manager**: `manager@example.com` / `password123` (CRUD sin eliminar vehículos)
+- **Viewer**: `viewer@example.com` / `password123` (Solo lectura)
 
 ## 🔑 Autenticación
 
@@ -63,6 +65,8 @@ Content-Type: application/json
   "password": "password123"
 }
 ```
+
+**Nota**: Puedes usar cualquiera de los usuarios de prueba (admin, manager, viewer) para obtener diferentes niveles de acceso.
 
 **Respuesta:**
 ```json
@@ -381,19 +385,20 @@ Los logs incluyen:
 
 ## 🔒 Seguridad
 
+### Autenticación y Autorización
 - **JWT Tokens** - Expiración de 24 horas
-- **Password hashing** - bcrypt con salt automático
-- **SQL Injection** - ActiveRecord protege automáticamente
-- **CSRF Protection** - Deshabilitado para API, activo para web
-- **Validaciones** - Input sanitization en modelos
+- **Roles de usuario** - Admin, Manager, Viewer con Pundit
+- **Autorización granular** - Permisos por acción y recurso
 
-## 📈 Performance
+### Matriz de Permisos
 
-- **Índices de BD** - En campos de búsqueda y FK
-- **Paginación** - Limitación automática de resultados
-- **Query optimization** - JOINs eficientes en reportes
-- **Serialización** - JSON estructurado con ActiveModelSerializers
-
+| Acción | Admin | Manager | Viewer |
+|--------|-------|---------|--------|
+| Ver vehículos/servicios | ✅ | ✅ | ✅ |
+| Crear vehículos/servicios | ✅ | ✅ | ❌ |
+| Editar vehículos/servicios | ✅ | ✅ | ❌ |
+| Eliminar vehículos | ✅ | ❌ | ❌ |
+| Eliminar servicios | ✅ | ❌ | ❌ |
 
 ## 🤝 Desarrollo
 
