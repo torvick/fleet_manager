@@ -1,0 +1,184 @@
+<div class="card shadow-sm">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h2 class="h5 mb-0"><%= @maintenance_service.persisted? ? "Editar servicio" : "Nuevo servicio" %></h2>
+    <span class="badge text-bg-light">Vehículo: <%= @vehicle.plate %></span>
+  </div>
+
+  <div class="card-body">
+    <% if @maintenance_service.errors.any? %>
+      <div class="alert alert-danger" role="alert">
+        <div class="fw-semibold mb-1">
+          Se encontraron <%= @maintenance_service.errors.count %> error(es) al guardar:
+        </div>
+        <ul class="mb-0 ps-3">
+          <% @maintenance_service.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= form_with model: [@vehicle, @maintenance_service], local: true, html: { class: "needs-validation", novalidate: true, id: "ms-form" } do |f| %>
+      <div class="row g-3 mb-3">
+        <!-- Descripción -->
+        <div class="col-md-8">
+          <%= f.label :description, "Description", class: "form-label" %>
+          <%= f.text_field :description,
+                class: "form-control #{invalid_class(@maintenance_service, :description)}",
+                placeholder: "Cambio de aceite, filtro, frenos, etc.",
+                required: true %>
+          <%= field_error(@maintenance_service, :description) %>
+        </div>
+
+        <!-- Fecha -->
+        <div class="col-md-4">
+          <%= f.label :date, "Date", class: "form-label" %>
+          <%= f.date_field :date,
+                class: "form-control #{invalid_class(@maintenance_service, :date)}",
+                value: (@maintenance_service.date || Date.current),
+                required: true %>
+          <%= field_error(@maintenance_service, :date) %>
+        </div>
+
+        <!-- Status -->
+        <div class="col-md-4">
+          <%= f.label :status, "Status", class: "form-label" %>
+          <%= f.select :status,
+                options_for_select(MaintenanceService.statuses.keys.map { |k| [k.humanize, k] }, @maintenance_service.status),
+                { include_blank: false },
+                class: "form-select #{invalid_class(@maintenance_service, :status)}",
+                id: "ms-status" %>
+          <%= field_error(@maintenance_service, :status) %>
+        </div>
+
+        <!-- Prioridad -->
+        <div class="col-md-4">
+          <%= f.label :priority, "Priority", class: "form-label" %>
+          <% if MaintenanceService.respond_to?(:priorities) %>
+            <%= f.select :priority,
+                  options_for_select(MaintenanceService.priorities.keys.map { |k| [k.humanize, k] }, @maintenance_service.try(:priority)),
+                  { include_blank: "(None)" },
+                  class: "form-select #{invalid_class(@maintenance_service, :priority)}" %>
+          <% else %>
+            <%= f.text_field :priority, class: "form-control #{invalid_class(@maintenance_service, :priority)}", placeholder: "low / medium / high" %>
+          <% end %>
+          <%= field_error(@maintenance_service, :priority) %>
+        </div>
+
+        <!-- Costo (UX en moneda) -->
+        <div class="col-md-4">
+          <%= f.label :cost_cents, "Cost", class: "form-label" %>
+          <div class="input-group has-validation">
+            <span class="input-group-text">$</span>
+            <%# Campo visible en pesos (sin centavos) %>
+            <input type="text"
+                   inputmode="decimal"
+                   class="form-control"
+                   id="cost-visible"
+                   placeholder="0.00"
+                   value="<%= (@maintenance_service.cost_cents.to_i / 100.0) if @maintenance_service.cost_cents.present? %>">
+            <%# Campo real en centavos %>
+            <%= f.hidden_field :cost_cents, id: "cost-cents" %>
+          </div>
+          <div class="form-text">Se guarda como centavos (ej. 1234.56 → 123456).</div>
+          <%= field_error(@maintenance_service, :cost_cents) %>
+        </div>
+
+        <!-- Completado en -->
+        <div class="col-md-6">
+          <%= f.label :completed_at, "Completed at", class: "form-label" %>
+          <%= f.datetime_local_field :completed_at,
+                class: "form-control #{invalid_class(@maintenance_service, :completed_at)}",
+                id: "ms-completed-at" %>
+          <div class="form-text">Requerido cuando el status es <code>completed</code>.</div>
+          <%= field_error(@maintenance_service, :completed_at) %>
+        </div>
+      </div>
+
+      <div class="card-footer bg-transparent px-0 pt-4 d-flex flex-wrap gap-2">
+        <%= f.submit (@maintenance_service.persisted? ? "Guardar cambios" : "Crear servicio"),
+              class: "btn btn-primary" %>
+        <%= link_to "Cancelar", @vehicle, class: "btn btn-outline-secondary" %>
+        <%# Atajo para completar ahora %>
+        <button type="button" class="btn btn-outline-success ms-auto" id="btn-complete-now">
+          Marcar como completado ahora
+        </button>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  // --- Currency: visible pesos -> hidden cents ---
+  (function(){
+    const vis = document.getElementById('cost-visible');
+    const hid = document.getElementById('cost-cents');
+    if (!vis || !hid) return;
+
+    const toCents = (v) => {
+      if (!v) return "";
+      // Normaliza: quita todo menos dígitos y punto/coma
+      v = String(v).replace(/[^\d.,]/g, '').replace(',', '.');
+      const num = parseFloat(v);
+      if (isNaN(num)) return "";
+      return Math.round(num * 100);
+    };
+
+    const format = (num) => {
+      if (num === "" || isNaN(num)) return "";
+      try { return new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num); }
+      catch { return Number(num).toFixed(2); }
+    };
+
+    // Inicializa hidden con el valor visible (si viene del servidor)
+    hid.value = toCents(vis.value);
+
+    vis.addEventListener('blur', function(){
+      // Formatea bonito al salir del input
+      const cents = toCents(vis.value);
+      hid.value = cents;
+      vis.value = cents === "" ? "" : format(cents / 100);
+    });
+
+    vis.addEventListener('input', function(){
+      // Actualiza en vivo los centavos
+      hid.value = toCents(vis.value);
+    });
+  })();
+
+  // --- CompletedAt requerido cuando status=completed ---
+  (function(){
+    const statusSel = document.getElementById('ms-status');
+    const completedAt = document.getElementById('ms-completed-at');
+    const form = document.getElementById('ms-form');
+    if (!statusSel || !completedAt || !form) return;
+
+    const toggleRequired = () => {
+      const isCompleted = statusSel.value === 'completed';
+      completedAt.required = isCompleted;
+      completedAt.classList.toggle('is-invalid', isCompleted && !completedAt.value);
+    };
+    statusSel.addEventListener('change', toggleRequired);
+    completedAt.addEventListener('input', toggleRequired);
+    toggleRequired();
+
+    // Botón “completar ahora”
+    const btnNow = document.getElementById('btn-complete-now');
+    if (btnNow) {
+      btnNow.addEventListener('click', function(){
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        completedAt.value = value;
+        statusSel.value = 'completed';
+        toggleRequired();
+      });
+    }
+
+    // Validación Bootstrap
+    form.addEventListener('submit', function (event) {
+      if (!form.checkValidity()) { event.preventDefault(); event.stopPropagation(); }
+      form.classList.add('was-validated');
+    }, false);
+  })();
+</script>

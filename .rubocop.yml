@@ -1,0 +1,53 @@
+plugins:
+  - rubocop-rails
+  - rubocop-rspec
+  - rubocop-factory_bot
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'bin/**/*'
+    - 'db/schema.rb'
+    - 'node_modules/**/*'
+    - 'tmp/**/*'
+
+Layout/LineLength:
+  Max: 120
+
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Rails/SaveBang:
+  Enabled: true
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Metrics/BlockLength:
+  Exclude:
+    - 'db/migrate/*.rb'
+    - 'config/environments/*.rb'
+    - 'spec/**/*.rb'
+
+Metrics/MethodLength:
+  Exclude:
+    - 'db/migrate/*.rb'
+
+# Permite 2 expectativas por ejemplo en request specs
+RSpec/MultipleExpectations:
+  Max: 20
+
+# Ejemplos de request a veces requieren más líneas
+RSpec/ExampleLength:
+  Max: 7
+  Exclude:
+    - 'spec/requests/**/*.rb'
+
+# let! no necesario si no se usa el valor explícitamente
+RSpec/LetSetup:
+  Enabled: true

@@ -1,0 +1,96 @@
+# Files in the config/locales directory are used for internationalization and
+# are automatically loaded by Rails. If you want to use locales other than
+# English, add the necessary files in this directory.
+#
+# To use the locales, use `I18n.t`:
+#
+#     I18n.t "hello"
+#
+# In views, this is aliased to just `t`:
+#
+#     <%= t("hello") %>
+#
+# To use a different locale, set it with `I18n.locale`:
+#
+#     I18n.locale = :es
+#
+# This would use the information in config/locales/es.yml.
+#
+# To learn more about the API, please read the Rails Internationalization guide
+# at https://guides.rubyonrails.org/i18n.html.
+#
+# Be aware that YAML interprets the following case-insensitive strings as
+# booleans: `true`, `false`, `on`, `off`, `yes`, `no`. Therefore, these strings
+# must be quoted to be interpreted as strings. For example:
+#
+#     en:
+#       "yes": yup
+#       enabled: "ON"
+
+en:
+  hello: "Hello world"
+  vehicles:
+    create:
+      success: "Vehicle created."
+      failure: "Failed to create vehicle."
+    update:
+      success: "Vehicle updated."
+      failure: "Failed to update vehicle."
+    destroy:
+      success: "Vehicle deleted."
+      failure: "Failed to delete vehicle." 
+    index:
+      title: "Vehicles"
+      new: "New Vehicle"
+      brand: "Brand"
+      model: "Model"
+      year: "Year"
+      license_plate: "License Plate"
+      vin: "VIN"
+      actions: "Actions"
+      edit: "Edit"
+      delete: "Delete"
+      no_vehicles: "No vehicles found."
+    show:
+      title: "Vehicle Details"
+      edit: "Edit"
+      delete: "Delete"
+      back: "Back to Vehicles"
+      maintenance_services: "Maintenance Services"
+      add_service: "Add Maintenance Service"
+      service_date: "Service Date"
+      description: "Description"
+      cost: "Cost"
+      no_services: "No maintenance services found."
+    form:
+      new_title: "New Vehicle"
+      edit_title: "Edit Vehicle"
+      brand: "Brand"
+      model: "Model"
+      year: "Year"
+      license_plate: "License Plate"
+      vin: "VIN"
+      submit: "Save Vehicle"
+      cancel: "Cancel"
+  maintenance_services:
+    create:
+      success: "Maintenance service created."
+      failure: "Failed to create maintenance service."
+    update:
+      success: "Maintenance service updated."
+      failure: "Failed to update maintenance service."
+    form:
+      new_title: "New Maintenance Service"
+      edit_title: "Edit Maintenance Service"
+      service_date: "Service Date"
+      description: "Description"
+      cost: "Cost"
+      submit: "Save Service"
+      cancel: "Cancel"
+    delete_confirm: "Are you sure you want to delete this maintenance service?"
+    destroy:
+      success: "Maintenance service deleted."
+      failure: "Failed to delete maintenance service."
+  errors:
+    not_found: "The requested resource was not found."
+    internal_server_error: "An internal server error occurred."

@@ -1,0 +1,133 @@
+<div class="card shadow-sm">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h2 class="h5 mb-0"><%= @vehicle.persisted? ? "Editar vehículo" : "Nuevo vehículo" %></h2>
+    <% if @vehicle.persisted? %>
+      <span class="badge text-bg-light">ID <%= @vehicle.id %></span>
+    <% end %>
+  </div>
+
+  <div class="card-body">
+    <% if @vehicle.errors.any? %>
+      <div class="alert alert-danger" role="alert">
+        <div class="fw-semibold mb-1">
+          Se encontraron <%= @vehicle.errors.count %> error(es) al guardar:
+        </div>
+        <ul class="mb-0 ps-3">
+          <% @vehicle.errors.full_messages.each do |msg| %>
+            <li><%= msg %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= form_with model: @vehicle, local: true, html: { class: "needs-validation", novalidate: true } do |f| %>
+      <div class="row g-3 mb-3">
+        <!-- Brand -->
+        <div class="col-md-4">
+          <%= f.label :brand, "Brand", class: "form-label" %>
+          <%= f.text_field :brand,
+                class: "form-control #{invalid_class(@vehicle, :brand)}",
+                placeholder: "e.g. Toyota",
+                required: true %>
+          <%= field_error(@vehicle, :brand) %>
+        </div>
+
+        <!-- Model -->
+        <div class="col-md-4">
+          <%= f.label :model, "Model", class: "form-label" %>
+          <%= f.text_field :model,
+                class: "form-control #{invalid_class(@vehicle, :model)}",
+                placeholder: "e.g. Corolla",
+                required: true %>
+          <%= field_error(@vehicle, :model) %>
+        </div>
+
+        <!-- Year -->
+        <div class="col-md-4">
+          <%= f.label :year, "Year", class: "form-label" %>
+          <%= f.number_field :year,
+                class: "form-control #{invalid_class(@vehicle, :year)}",
+                min: 1980, max: (Time.current.year + 1),
+                placeholder: Time.current.year,
+                required: true %>
+          <div class="form-text">Rango válido: 1980–<%= Time.current.year + 1 %></div>
+          <%= field_error(@vehicle, :year) %>
+        </div>
+
+        <!-- Plate -->
+        <div class="col-md-6">
+          <%= f.label :plate, "Plate", class: "form-label" %>
+          <div class="input-group has-validation">
+            <span class="input-group-text">🚗</span>
+            <%= f.text_field :plate,
+                  class: "form-control #{invalid_class(@vehicle, :plate)}",
+                  placeholder: "ABC123",
+                  maxlength: 12,
+                  data: { upper: true },
+                  required: true %>
+            <%= field_error(@vehicle, :plate) %>
+          </div>
+          <div class="form-text">Se convierte a MAYÚSCULAS automáticamente.</div>
+        </div>
+
+        <!-- VIN -->
+        <div class="col-md-6">
+          <%= f.label :vin, "VIN", class: "form-label" %>
+          <%= f.text_field :vin,
+                class: "form-control #{invalid_class(@vehicle, :vin)}",
+                placeholder: "17 caracteres",
+                maxlength: 17,
+                data: { upper: true },
+                required: true %>
+          <div class="d-flex justify-content-between">
+            <div class="form-text">Usa solo caracteres válidos (sin I, O, Q).</div>
+            <small class="text-muted"><span id="vin-count"><%= @vehicle.vin.to_s.length %></span>/17</small>
+          </div>
+          <%= field_error(@vehicle, :vin) %>
+        </div>
+
+        <!-- Status -->
+        <div class="col-md-6">
+          <%= f.label :status, "Status", class: "form-label" %>
+          <%= f.select :status,
+                options_for_select(Vehicle.statuses.keys.map { |k| [k.humanize, k] }, @vehicle.status),
+                { include_blank: false },
+                class: "form-select #{invalid_class(@vehicle, :status)}" %>
+          <%= field_error(@vehicle, :status) %>
+        </div>
+      </div>
+
+      <div class="card-footer bg-transparent px-0 pt-4 d-flex flex-wrap gap-2">
+        <%= f.submit (@vehicle.persisted? ? "Guardar cambios" : "Crear vehículo"),
+              class: "btn btn-primary" %>
+        <%= link_to "Cancelar",
+              (@vehicle.persisted? ? @vehicle : vehicles_path),
+              class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- UX: auto-uppercase y contador de VIN (vanilla JS; puedes moverlo a un pack) -->
+<script>
+  document.addEventListener("input", function(e){
+    if (e.target.matches("[data-upper='true']")) {
+      e.target.value = e.target.value.toUpperCase().trimStart();
+      if (e.target.name.endsWith("[vin]")) {
+        var c = document.getElementById("vin-count");
+        if (c) c.textContent = e.target.value.length;
+      }
+    }
+  });
+
+  // Bootstrap 5 client-side validation (opcional)
+  (function () {
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) { event.preventDefault(); event.stopPropagation(); }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  })();
+</script>

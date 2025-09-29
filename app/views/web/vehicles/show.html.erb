@@ -1,0 +1,158 @@
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <h1 class="h4 mb-0">
+    <%= @vehicle.brand %> <%= @vehicle.model %>
+    <small class="text-muted">(<%= @vehicle.year %>)</small>
+  </h1>
+
+  <span class="badge <%= vehicle_status_badge_class(@vehicle.status) %> ms-2">
+    <%= @vehicle.status.humanize %>
+  </span>
+
+  <div class="ms-auto d-flex flex-wrap gap-2">
+    <%= link_to 'Editar', edit_vehicle_path(@vehicle), class: 'btn btn-outline-secondary' %>
+    <%= button_to 'Eliminar', @vehicle, method: :delete,
+          data: { "turbo-confirm": "¿Seguro que deseas eliminar este vehículo?" },
+          class: 'btn btn-outline-danger' %>
+    <%= link_to 'Volver', vehicles_path, class: 'btn btn-outline-dark' %>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Detalles -->
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <strong>Detalles</strong>
+      </div>
+      <div class="list-group list-group-flush">
+        <div class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Brand</span>
+          <span class="fw-semibold"><%= @vehicle.brand %></span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Model</span>
+          <span class="fw-semibold"><%= @vehicle.model %></span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Year</span>
+          <span class="fw-semibold"><%= @vehicle.year %></span>
+        </div>
+        <div class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Plate</span>
+          <span class="fw-semibold"><code><%= @vehicle.plate %></code></span>
+        </div>
+        <div class="list-group-item">
+          <div class="text-muted mb-1">VIN</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-truncate" style="max-width: 220px;"><%= @vehicle.vin %></span>
+            <% if @vehicle.vin.present? %>
+              <button class="btn btn-sm btn-light" type="button" data-copy="<%= @vehicle.vin %>">Copiar</button>
+            <% end %>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer text-muted small">
+        Creado: <%= l(@vehicle.created_at, format: :short) %> ·
+        Actualizado: <%= l(@vehicle.updated_at, format: :short) %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Servicios de mantenimiento -->
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex align-items-center">
+        <strong>Maintenance Services</strong>
+        <%= link_to 'Nuevo servicio', new_vehicle_maintenance_service_path(@vehicle),
+              class: 'btn btn-sm btn-primary ms-auto' %>
+      </div>
+
+      <% services = @vehicle.maintenance_services.order(date: :desc).limit(10) %>
+
+      <% if services.empty? %>
+        <div class="card-body text-center py-5">
+          <div class="display-6 mb-2">🧰</div>
+          <h6 class="mb-1">Sin servicios registrados</h6>
+          <p class="text-muted mb-3">Agrega el primer servicio de mantenimiento para llevar control.</p>
+          <%= link_to 'Agregar servicio', new_vehicle_maintenance_service_path(@vehicle),
+                class: 'btn btn-primary btn-sm' %>
+        </div>
+      <% else %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Fecha</th>
+                <th>Status</th>
+                <th>Prioridad</th>
+                <th class="text-end">Costo</th>
+                <th class="text-end"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% services.each do |ms| %>
+                <tr>
+                  <td><%= ms.date ? l(ms.date, format: :short) : '-' %></td>
+                  <td>
+                    <span class="badge <%= maintenance_status_badge(ms.status) %>">
+                      <%= ms.status.to_s.humanize %>
+                    </span>
+                  </td>
+                  <td>
+                    <% if ms.respond_to?(:priority) && ms.priority.present? %>
+                      <span class="badge <%= priority_badge(ms.priority) %>">
+                        <%= ms.priority.to_s.humanize %>
+                      </span>
+                    <% else %>
+                      <span class="text-muted">—</span>
+                    <% end %>
+                  </td>
+                  <td class="text-end">
+                    <%= money_cents(ms.cost_cents) %>
+                  </td>
+                  <td class="text-end">
+                    <div class="btn-group">
+                      <%= link_to 'Editar', edit_vehicle_maintenance_service_path(@vehicle, ms),
+                            class: 'btn btn-sm btn-outline-secondary' %>
+                      <button class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                          <%= button_to 'Eliminar',
+                                vehicle_maintenance_service_path(@vehicle, ms),
+                                method: :delete,
+                                form: { data: { turbo_confirm: '¿Seguro?' } },
+                                class: 'dropdown-item text-danger' %>
+                        </li>
+                      </ul>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card-footer d-flex flex-wrap gap-3 align-items-center">
+          <small class="text-muted">Mostrando últimos 10 servicios.</small>
+          <% total = services.sum(:cost_cents) %>
+          <div class="ms-auto small">
+            <span class="text-muted me-1">Total:</span>
+            <span class="fw-semibold"><%= money_cents(total) %></span>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Copiar VIN -->
+<script>
+  document.addEventListener("click", function(e){
+    var btn = e.target.closest("[data-copy]");
+    if (!btn) return;
+    navigator.clipboard.writeText(btn.getAttribute("data-copy")).then(function(){
+      btn.textContent = "Copiado";
+      setTimeout(function(){ btn.textContent = "Copiar"; }, 1200);
+    });
+  });
+</script>
