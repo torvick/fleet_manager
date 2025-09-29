@@ -11,7 +11,8 @@ module Api
 
       # GET /api/v1/vehicles
       def index
-        scope = apply_sort(filter_scope(Vehicle.all))
+        authorize Vehicle
+        scope = apply_sort(filter_scope(policy_scope(Vehicle)))
         pagy, records = pagy(scope, items: params[:items].presence || Pagy::DEFAULT[:items])
 
         payload = PaginatedResource.new(collection: records, meta: pagy_metadata(pagy))
@@ -26,6 +27,7 @@ module Api
 
       # GET /api/v1/vehicles/:id
       def show
+        authorize @vehicle
         render json: @vehicle,
                serializer: VehicleSerializer,
                adapter: :attributes,
@@ -35,6 +37,7 @@ module Api
       # POST /api/v1/vehicles
       def create
         vehicle = Vehicle.new(vehicle_params)
+        authorize vehicle
         if vehicle.save
           render json: vehicle,
                  serializer: VehicleSerializer,
@@ -47,6 +50,7 @@ module Api
 
       # PATCH/PUT /api/v1/vehicles/:id
       def update
+        authorize @vehicle
         if @vehicle.update(vehicle_params)
           render json: @vehicle,
                  serializer: VehicleSerializer,
@@ -59,6 +63,7 @@ module Api
 
       # DELETE /api/v1/vehicles/:id
       def destroy
+        authorize @vehicle
         @vehicle.destroy!
         head :no_content
       end
