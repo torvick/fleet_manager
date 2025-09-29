@@ -5,6 +5,7 @@ module Web
     class MaintenanceServicesController < ApplicationController
       before_action :set_vehicle
       before_action :set_ms, only: %i[edit update destroy]
+      before_action :set_discarded_ms, only: %i[restore]
 
       def new
         @maintenance_service = @vehicle.maintenance_services.new(date: Date.current)
@@ -32,8 +33,13 @@ module Web
       end
 
       def destroy
-        @maintenance_service.destroy!
+        @maintenance_service.discard
         redirect_to @vehicle, notice: t('maintenance_service.destroy.success').to_s
+      end
+
+      def restore
+        @maintenance_service.undiscard
+        redirect_to @vehicle, notice: t('maintenance_service.restore.success').to_s
       end
 
       private
@@ -44,6 +50,10 @@ module Web
 
       def set_ms
         @maintenance_service = @vehicle.maintenance_services.find(params[:id])
+      end
+
+      def set_discarded_ms
+        @maintenance_service = @vehicle.maintenance_services.with_discarded.find(params[:id])
       end
 
       def ms_params

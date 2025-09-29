@@ -6,5 +6,10 @@ FactoryBot.define do
     date { Time.zone.today }
     cost_cents { 1_000 }
     priority { :medium }
+
+    trait :completed do
+      status { :completed }
+      completed_at { 1.hour.ago }
+    end
   end
 end

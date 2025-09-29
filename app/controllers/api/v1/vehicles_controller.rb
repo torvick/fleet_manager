@@ -13,7 +13,7 @@ module Api
       def index
         authorize Vehicle
         scope = apply_sort(filter_scope(policy_scope(Vehicle)))
-        pagy, records = pagy(scope, items: params[:items].presence || Pagy::DEFAULT[:items])
+        pagy, records = pagy(scope, limit: params[:items]&.to_i || Pagy::DEFAULT[:items])
 
         payload = PaginatedResource.new(collection: records, meta: pagy_metadata(pagy))
 
@@ -64,7 +64,20 @@ module Api
       # DELETE /api/v1/vehicles/:id
       def destroy
         authorize @vehicle
-        @vehicle.destroy!
+        @vehicle.discard
+        head :no_content
+      end
+
+      # POST /api/v1/vehicles/:id/restore
+      def restore
+        @vehicle = Vehicle.with_discarded.find(params[:id])
+        authorize @vehicle, :restore?
+        @vehicle.undiscard
+        render json: @vehicle,
+               serializer: VehicleSerializer,
+               adapter: :attributes,
+               status: :ok
+      rescue ActiveRecord::RecordNotFound
         head :no_content
       end
 
@@ -82,10 +95,21 @@ module Api
 
       # ---- Filtros de index ----
       def filter_scope(scope)
+        scope = apply_discard_filter(scope)
         scope = scope.search(params[:q])
         scope = scope.by_status(params[:status])
         scope = scope.by_brand(params[:brand])
         scope.by_year(params[:year])
+      end
+
+      def apply_discard_filter(scope)
+        if params[:include_discarded] == 'true' && current_user.role_admin?
+          scope.with_discarded
+        elsif params[:only_discarded] == 'true' && current_user.role_admin?
+          scope.with_discarded.discarded
+        else
+          scope.kept
+        end
       end
     end
   end

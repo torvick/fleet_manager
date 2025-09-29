@@ -5,9 +5,10 @@ module Web
     include Pagy::Backend
 
     before_action :set_vehicle, only: %i[show edit update destroy]
+    before_action :set_discarded_vehicle, only: %i[restore]
 
     def index
-      scope = Vehicle.all
+      scope = Vehicle.kept
       scope = scope.search(params[:q])
       scope = scope.by_status(params[:status])
       scope = scope.by_brand(params[:brand])
@@ -17,7 +18,14 @@ module Web
     end
 
     def show
-      @vehicle = Vehicle.includes(:maintenance_services).find(params[:id])
+      @vehicle = Vehicle.find(params[:id])
+      @show_discarded = params[:show_discarded] == 'true'
+
+      @services = if @show_discarded
+                    @vehicle.maintenance_services.with_discarded.discarded.order(discarded_at: :desc).limit(10)
+                  else
+                    @vehicle.maintenance_services.order(date: :desc).limit(10)
+                  end
     end
 
     def new
@@ -46,8 +54,19 @@ module Web
     end
 
     def destroy
-      @vehicle.destroy!
+      @vehicle.discard
       redirect_to vehicles_path, notice: t('vehicle.destroy.success').to_s
+    end
+
+    def discarded
+      scope = apply_filters_to_discarded_vehicles
+      @pagy, @vehicles = pagy(scope.order(discarded_at: :desc), limit: 10)
+      render :index
+    end
+
+    def restore
+      @vehicle.undiscard
+      redirect_to vehicle_path(@vehicle), notice: t('vehicle.restore.success').to_s
     end
 
     private
@@ -56,8 +75,20 @@ module Web
       @vehicle = Vehicle.find(params[:id])
     end
 
+    def set_discarded_vehicle
+      @vehicle = Vehicle.with_discarded.find(params[:id])
+    end
+
     def vehicle_params
       params.require(:vehicle).permit(:vin, :plate, :brand, :model, :year, :status)
+    end
+
+    def apply_filters_to_discarded_vehicles
+      scope = Vehicle.discarded
+      scope = scope.search(params[:q])
+      scope = scope.by_status(params[:status])
+      scope = scope.by_brand(params[:brand])
+      scope.by_year(params[:year])
     end
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_09_29_183920) do
+ActiveRecord::Schema[7.1].define(version: 2025_09_29_220646) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -19,12 +19,14 @@ ActiveRecord::Schema[7.1].define(version: 2025_09_29_183920) do
     t.string "description", null: false
     t.integer "status", default: 0, null: false
     t.date "date", null: false
-    t.integer "cost_cents", default: 0, null: false
+    t.bigint "cost_cents", default: 0, null: false
     t.integer "priority", default: 1, null: false
     t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "discarded_at"
     t.index ["date"], name: "index_maintenance_services_on_date"
+    t.index ["discarded_at"], name: "index_maintenance_services_on_discarded_at"
     t.index ["status"], name: "index_maintenance_services_on_status"
     t.index ["vehicle_id"], name: "index_maintenance_services_on_vehicle_id"
   end
@@ -48,8 +50,10 @@ ActiveRecord::Schema[7.1].define(version: 2025_09_29_183920) do
     t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "discarded_at"
     t.index "lower((plate)::text)", name: "index_vehicles_on_lower_plate", unique: true
     t.index "lower((vin)::text)", name: "index_vehicles_on_lower_vin", unique: true
+    t.index ["discarded_at"], name: "index_vehicles_on_discarded_at"
   end
 
   add_foreign_key "maintenance_services", "vehicles"

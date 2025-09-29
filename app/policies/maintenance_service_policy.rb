@@ -27,6 +27,10 @@ class MaintenanceServicePolicy < ApplicationPolicy
     user.role_admin?
   end
 
+  def restore?
+    user.role_admin?
+  end
+
   class Scope < Scope
     def resolve
       scope.all

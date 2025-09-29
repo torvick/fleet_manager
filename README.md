@@ -9,6 +9,7 @@ Sistema de gestión de flotas de vehículos con API REST y interfaz web. Permite
 - **PostgreSQL** 14+
 - **JWT** para autenticación
 - **Pundit** para autorización por roles
+- **Discard** para soft delete (eliminación suave)
 - **RSpec + FactoryBot** para testing
 - **Pagy** para paginación
 - **ActiveModelSerializers** para serialización JSON
@@ -105,10 +106,19 @@ GET /api/v1/vehicles
 - `sort` - Ordenar por campo (`brand`, `model`, `year`, `created_at`)
 - `items` - Elementos por página (default: 20)
 - `page` - Página actual
+- `include_discarded` - Incluir vehículos eliminados (solo admin): `true`/`false`
+- `only_discarded` - Solo vehículos eliminados (solo admin): `true`/`false`
 
-**Ejemplo:**
+**Ejemplos:**
 ```bash
+# Vehículos activos (comportamiento por defecto)
 GET /api/v1/vehicles?q=toyota&status=active&sort=year&items=10&page=1
+
+# Solo vehículos eliminados (solo admin)
+GET /api/v1/vehicles?only_discarded=true
+
+# Todos los vehículos incluyendo eliminados (solo admin)
+GET /api/v1/vehicles?include_discarded=true
 ```
 
 #### Crear vehículo
@@ -145,9 +155,14 @@ Content-Type: application/json
 }
 ```
 
-#### Eliminar vehículo
+#### Eliminar vehículo (Soft Delete)
 ```bash
 DELETE /api/v1/vehicles/:id
+```
+
+#### Restaurar vehículo eliminado
+```bash
+POST /api/v1/vehicles/:id/restore
 ```
 
 ### Servicios de Mantenimiento
@@ -165,10 +180,19 @@ GET /api/v1/vehicles/:vehicle_id/maintenance_services
 - `sort` - Ordenar por campo (`date`, `status`, `priority`, `cost_cents`)
 - `items` - Elementos por página
 - `page` - Página actual
+- `include_discarded` - Incluir servicios eliminados (solo admin): `true`/`false`
+- `only_discarded` - Solo servicios eliminados (solo admin): `true`/`false`
 
-**Ejemplo:**
+**Ejemplos:**
 ```bash
+# Servicios activos (comportamiento por defecto)
 GET /api/v1/vehicles/1/maintenance_services?status=pending&from=2024-01-01&to=2024-12-31
+
+# Solo servicios eliminados (solo admin)
+GET /api/v1/vehicles/1/maintenance_services?only_discarded=true
+
+# Todos los servicios incluyendo eliminados (solo admin)
+GET /api/v1/vehicles/1/maintenance_services?include_discarded=true
 ```
 
 #### Crear servicio de mantenimiento
@@ -205,9 +229,14 @@ Content-Type: application/json
 }
 ```
 
-#### Eliminar servicio
+#### Eliminar servicio (Soft Delete)
 ```bash
 DELETE /api/v1/maintenance_services/:id
+```
+
+#### Restaurar servicio eliminado
+```bash
+POST /api/v1/maintenance_services/:id/restore
 ```
 
 ### Reportes
@@ -287,6 +316,7 @@ brand        # String, requerido
 model        # String, requerido
 year         # Integer, rango 1990..2050
 status       # Enum: active, inactive, in_maintenance
+discarded_at # DateTime, para soft delete
 
 # Relaciones
 has_many :maintenance_services
@@ -302,6 +332,7 @@ date           # Date, no puede ser futura
 cost_cents     # Integer, >= 0
 priority       # Enum: low, medium, high
 completed_at   # DateTime, requerido si status = completed
+discarded_at   # DateTime, para soft delete
 
 # Relaciones
 belongs_to :vehicle
@@ -324,6 +355,7 @@ role            # String, default: admin
 3. **Servicios completed** - Requieren `completed_at` timestamp
 4. **Fechas válidas** - No se permiten fechas futuras en servicios
 5. **Costos en centavos** - Para evitar problemas de precisión decimal
+6. **Soft Delete** - Los registros eliminados se marcan con `discarded_at` y pueden restaurarse
 
 ## 🧪 Testing
 
@@ -399,6 +431,7 @@ Los logs incluyen:
 | Editar vehículos/servicios | ✅ | ✅ | ❌ |
 | Eliminar vehículos | ✅ | ❌ | ❌ |
 | Eliminar servicios | ✅ | ❌ | ❌ |
+| Restaurar vehículos/servicios | ✅ | ❌ | ❌ |
 
 ## 🤝 Desarrollo
 

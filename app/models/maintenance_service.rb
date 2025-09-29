@@ -1,5 +1,7 @@
 class MaintenanceService < ApplicationRecord
-  belongs_to :vehicle
+  include Discard::Model
+
+  belongs_to :vehicle, inverse_of: :maintenance_services
 
   enum :status, {
     pending: 0,

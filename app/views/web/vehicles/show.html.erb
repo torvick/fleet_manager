@@ -63,19 +63,33 @@
     <div class="card shadow-sm">
       <div class="card-header d-flex align-items-center">
         <strong>Maintenance Services</strong>
-        <%= link_to 'Nuevo servicio', new_vehicle_maintenance_service_path(@vehicle),
-              class: 'btn btn-sm btn-primary ms-auto' %>
+        <% if @show_discarded %>
+          <small class="text-warning ms-2">(Eliminados)</small>
+        <% end %>
+        <div class="ms-auto d-flex gap-2">
+          <% if @show_discarded %>
+            <%= link_to 'Ver activos', @vehicle, class: 'btn btn-sm btn-outline-secondary' %>
+          <% else %>
+            <%= link_to 'Ver eliminados', vehicle_path(@vehicle, show_discarded: true), class: 'btn btn-sm btn-outline-warning' %>
+          <% end %>
+          <%= link_to 'Nuevo servicio', new_vehicle_maintenance_service_path(@vehicle),
+                class: 'btn btn-sm btn-primary' %>
+        </div>
       </div>
 
-      <% services = @vehicle.maintenance_services.order(date: :desc).limit(10) %>
-
-      <% if services.empty? %>
+      <% if @services.empty? %>
         <div class="card-body text-center py-5">
           <div class="display-6 mb-2">🧰</div>
-          <h6 class="mb-1">Sin servicios registrados</h6>
-          <p class="text-muted mb-3">Agrega el primer servicio de mantenimiento para llevar control.</p>
-          <%= link_to 'Agregar servicio', new_vehicle_maintenance_service_path(@vehicle),
-                class: 'btn btn-primary btn-sm' %>
+          <% if @show_discarded %>
+            <h6 class="mb-1">Sin servicios eliminados</h6>
+            <p class="text-muted mb-3">No hay servicios de mantenimiento eliminados.</p>
+            <%= link_to 'Ver servicios activos', @vehicle, class: 'btn btn-outline-secondary btn-sm' %>
+          <% else %>
+            <h6 class="mb-1">Sin servicios registrados</h6>
+            <p class="text-muted mb-3">Agrega el primer servicio de mantenimiento para llevar control.</p>
+            <%= link_to 'Agregar servicio', new_vehicle_maintenance_service_path(@vehicle),
+                  class: 'btn btn-primary btn-sm' %>
+          <% end %>
         </div>
       <% else %>
         <div class="table-responsive">
@@ -90,7 +104,7 @@
               </tr>
             </thead>
             <tbody>
-              <% services.each do |ms| %>
+              <% @services.each do |ms| %>
                 <tr>
                   <td><%= ms.date ? l(ms.date, format: :short) : '-' %></td>
                   <td>
@@ -111,20 +125,29 @@
                     <%= money_cents(ms.cost_cents) %>
                   </td>
                   <td class="text-end">
-                    <div class="btn-group">
-                      <%= link_to 'Editar', edit_vehicle_maintenance_service_path(@vehicle, ms),
-                            class: 'btn btn-sm btn-outline-secondary' %>
-                      <button class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
-                      <ul class="dropdown-menu dropdown-menu-end">
-                        <li>
-                          <%= button_to 'Eliminar',
-                                vehicle_maintenance_service_path(@vehicle, ms),
-                                method: :delete,
-                                form: { data: { turbo_confirm: '¿Seguro?' } },
-                                class: 'dropdown-item text-danger' %>
-                        </li>
-                      </ul>
-                    </div>
+                    <% if ms.discarded? %>
+                      <div class="btn-group">
+                        <%= button_to 'Restaurar', restore_vehicle_maintenance_service_path(@vehicle, ms),
+                              method: :post,
+                              form: { data: { turbo_confirm: '¿Restaurar este servicio?' } },
+                              class: 'btn btn-sm btn-outline-success' %>
+                      </div>
+                    <% else %>
+                      <div class="btn-group">
+                        <%= link_to 'Editar', edit_vehicle_maintenance_service_path(@vehicle, ms),
+                              class: 'btn btn-sm btn-outline-secondary' %>
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                          <li>
+                            <%= button_to 'Eliminar',
+                                  vehicle_maintenance_service_path(@vehicle, ms),
+                                  method: :delete,
+                                  form: { data: { turbo_confirm: '¿Seguro?' } },
+                                  class: 'dropdown-item text-danger' %>
+                          </li>
+                        </ul>
+                      </div>
+                    <% end %>
                   </td>
                 </tr>
               <% end %>
@@ -133,12 +156,20 @@
         </div>
 
         <div class="card-footer d-flex flex-wrap gap-3 align-items-center">
-          <small class="text-muted">Mostrando últimos 10 servicios.</small>
-          <% total = services.sum(:cost_cents) %>
-          <div class="ms-auto small">
-            <span class="text-muted me-1">Total:</span>
-            <span class="fw-semibold"><%= money_cents(total) %></span>
-          </div>
+          <small class="text-muted">
+            <% if @show_discarded %>
+              Mostrando últimos 10 servicios eliminados.
+            <% else %>
+              Mostrando últimos 10 servicios.
+            <% end %>
+          </small>
+          <% unless @show_discarded %>
+            <% total = @services.sum(:cost_cents) %>
+            <div class="ms-auto small">
+              <span class="text-muted me-1">Total:</span>
+              <span class="fw-semibold"><%= money_cents(total) %></span>
+            </div>
+          <% end %>
         </div>
       <% end %>
     </div>
