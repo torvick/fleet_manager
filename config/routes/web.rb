@@ -14,4 +14,6 @@ scope module: :web do
               only: %i[new create edit update destroy],
               concerns: :restorable
   end
+
+  get 'reports/maintenance_summary', to: 'reports#maintenance_summary', as: 'maintenance_summary_report'
 end

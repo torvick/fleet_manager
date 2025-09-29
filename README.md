@@ -449,6 +449,109 @@ app/
 └── views/               # Vistas HTML (ERB)
 ```
 
+## Reporte de Resumen de Mantenimiento
+
+Este reporte está disponible tanto como vista web como API, con soporte de exportación en múltiples formatos.
+
+### Vista Web
+
+Accede al reporte desde la navegación principal o directamente en:
+
+```
+http://localhost:3000/reports/maintenance_summary
+```
+
+**Características:**
+- Filtros por fecha (desde/hasta)
+- Filtro opcional por vehículo específico
+- Visualización de:
+  - Totales de órdenes y costos
+  - Resumen por estado
+  - Resumen por vehículo
+  - Top 3 vehículos con mayor costo
+- Botones de descarga directa para CSV y Excel
+
+### API REST
+
+El endpoint de reporte de mantenimiento también está disponible como API con soporte de exportación en múltiples formatos:
+
+### Formatos Disponibles
+
+- **JSON** (por defecto)
+- **CSV**
+- **XLSX (Excel)**
+
+### Uso
+
+#### Exportar como CSV
+
+```bash
+GET /api/v1/reports/maintenance_summary?export_format=csv&from=2025-01-01&to=2025-12-31
+```
+
+#### Exportar como Excel (XLSX)
+
+```bash
+GET /api/v1/reports/maintenance_summary?export_format=xlsx&from=2025-01-01&to=2025-12-31
+```
+
+#### JSON (por defecto)
+
+```bash
+GET /api/v1/reports/maintenance_summary?from=2025-01-01&to=2025-12-31
+```
+
+### Parámetros
+
+- `export_format` (opcional): Formato de exportación (`csv`, `xlsx`). Por defecto: JSON
+- `from` (opcional): Fecha de inicio del rango (formato: YYYY-MM-DD)
+- `to` (opcional): Fecha de fin del rango (formato: YYYY-MM-DD)
+- `vehicle_id` (opcional): ID del vehículo para filtrar
+
+### Ejemplo con cURL
+
+```bash
+# Exportar como CSV
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:3000/api/v1/reports/maintenance_summary?export_format=csv&from=2025-01-01&to=2025-12-31" \
+  -o report.csv
+
+# Exportar como Excel
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:3000/api/v1/reports/maintenance_summary?export_format=xlsx&from=2025-01-01&to=2025-12-31" \
+  -o report.xlsx
+```
+
+### Contenido del Reporte
+
+Ambos formatos (CSV y Excel) incluyen las siguientes secciones:
+
+1. **Totales**
+   - Órdenes totales
+   - Costo total
+
+2. **Resumen por Estado**
+   - Estado
+   - Cantidad de servicios
+   - Costo total
+
+3. **Resumen por Vehículo**
+   - ID del vehículo
+   - Marca
+   - Modelo
+   - Placa
+   - Cantidad de servicios
+   - Costo total
+
+4. **Top Vehículos por Costo**
+   - Los 3 vehículos con mayor costo de mantenimiento
+
+### Notas
+
+- Los archivos descargados incluyen un timestamp en el nombre (ej: `maintenance_summary_20250929_143022.csv`)
+- Los costos están formateados en formato decimal (ej: `100.50`)
+- El formato Excel incluye estilos y colores para mejor presentación
+
 ---
 
 **Fleet Manager API v1.0** - Sistema de gestión de flotas vehiculares 🚗✨
