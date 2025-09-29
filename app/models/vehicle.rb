@@ -1,5 +1,7 @@
 class Vehicle < ApplicationRecord
-  has_many :maintenance_services, dependent: :destroy
+  include Discard::Model
+
+  has_many :maintenance_services, -> { kept }, inverse_of: :vehicle, dependent: :destroy
 
   enum :status, {
     active: 0,

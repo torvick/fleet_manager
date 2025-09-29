@@ -1,12 +1,22 @@
 <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
   <div class="d-flex align-items-center gap-3">
-    <h1 class="h3 mb-0">Vehicles</h1>
+    <h1 class="h3 mb-0">
+      Vehicles
+      <% if request.path == discarded_vehicles_path %>
+        <small class="text-warning">(Eliminados)</small>
+      <% end %>
+    </h1>
     <% if @pagy&.count %>
       <span class="badge rounded-pill text-bg-light"><%= @pagy.count %> total</span>
     <% end %>
   </div>
 
   <div class="ms-auto d-flex gap-2">
+    <% if request.path == discarded_vehicles_path %>
+      <%= link_to 'Ver activos', vehicles_path, class: 'btn btn-outline-secondary' %>
+    <% else %>
+      <%= link_to 'Ver eliminados', discarded_vehicles_path, class: 'btn btn-outline-warning' %>
+    <% end %>
     <%= link_to 'Nuevo', new_vehicle_path, class: 'btn btn-primary' %>
   </div>
 </div>
@@ -107,21 +117,31 @@
               </td>
 
               <td class="text-end">
-                <div class="btn-group">
-                  <%= link_to 'Ver', v, class: 'btn btn-sm btn-outline-primary' %>
-                  <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                    <span class="visually-hidden">Más</span>
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li><%= link_to 'Editar', edit_vehicle_path(v), class: 'dropdown-item' %></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                      <%= link_to 'Eliminar', v,
-                                  class: 'dropdown-item text-danger',
-                                  data: { turbo_method: :delete, turbo_confirm: '¿Seguro que deseas eliminar este vehículo?' } %>
-                    </li>
-                  </ul>
-                </div>
+                <% if v.discarded? %>
+                  <div class="btn-group">
+                    <%= button_to 'Restaurar', restore_vehicle_path(v),
+                          method: :post,
+                          form: { data: { turbo_confirm: '¿Restaurar este vehículo?' } },
+                          class: 'btn btn-sm btn-outline-success' %>
+                  </div>
+                <% else %>
+                  <div class="btn-group">
+                    <%= link_to 'Ver', v, class: 'btn btn-sm btn-outline-primary' %>
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                      <span class="visually-hidden">Más</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                      <li><%= link_to 'Editar', edit_vehicle_path(v), class: 'dropdown-item' %></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li>
+                        <%= button_to 'Eliminar', v,
+                                      method: :delete,
+                                      form: { data: { turbo_confirm: '¿Seguro que deseas eliminar este vehículo?' } },
+                                      class: 'dropdown-item text-danger' %>
+                      </li>
+                    </ul>
+                  </div>
+                <% end %>
               </td>
             </tr>
           <% end %>

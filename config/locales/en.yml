@@ -38,7 +38,10 @@ en:
       failure: "Failed to update vehicle."
     destroy:
       success: "Vehicle deleted."
-      failure: "Failed to delete vehicle." 
+      failure: "Failed to delete vehicle."
+    restore:
+      success: "Vehicle restored successfully."
+      failure: "Failed to restore vehicle." 
     index:
       title: "Vehicles"
       new: "New Vehicle"
@@ -91,6 +94,9 @@ en:
     destroy:
       success: "Maintenance service deleted."
       failure: "Failed to delete maintenance service."
+    restore:
+      success: "Maintenance service restored successfully."
+      failure: "Failed to restore maintenance service."
   errors:
     not_found: "The requested resource was not found."
     internal_server_error: "An internal server error occurred."
