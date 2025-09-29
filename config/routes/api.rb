@@ -12,6 +12,6 @@ namespace :api do
 
     resources :maintenance_services, only: %i[update show destroy], concerns: :restorable
 
-    get 'reports/maintenance_summary', to: 'reports#maintenance_summary'
+    get 'reports/maintenance_summary(.:format)', to: 'reports#maintenance_summary', defaults: { format: :json }
   end
 end

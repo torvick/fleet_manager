@@ -70,5 +70,52 @@ RSpec.describe 'Reports API', type: :request do
       expect(totals['orders_count']).to eq(2)
       expect(totals['total_cost_cents']).to eq(5000)
     end
+
+    context 'when CSV export' do
+      it 'returns CSV content with correct headers' do
+        get '/api/v1/reports/maintenance_summary',
+            params: { from: '2025-01-01', to: '2025-12-31', export_format: 'csv' },
+            headers: headers
+
+        expect(response).to have_http_status(:ok)
+        expect(response.content_type).to include('text/csv')
+        expect(response.headers['Content-Disposition']).to include('attachment')
+        expect(response.headers['Content-Disposition']).to include('maintenance_summary_')
+        expect(response.headers['Content-Disposition']).to include('.csv')
+
+        csv_content = response.body
+        expect(csv_content).to include('TOTALES')
+        expect(csv_content).to include('RESUMEN POR ESTADO')
+        expect(csv_content).to include('RESUMEN POR VEHÍCULO')
+        expect(csv_content).to include('TOP VEHÍCULOS POR COSTO')
+      end
+
+      it 'includes vehicle data in CSV' do
+        get '/api/v1/reports/maintenance_summary',
+            params: { from: '2025-01-01', to: '2025-12-31', export_format: 'csv' },
+            headers: headers
+
+        csv_content = response.body
+        expect(csv_content).to include('Toyota')
+        expect(csv_content).to include('Honda')
+        expect(csv_content).to include('ABC123')
+        expect(csv_content).to include('XYZ987')
+      end
+    end
+
+    context 'when Excel export' do
+      it 'returns Excel content with correct headers' do
+        get '/api/v1/reports/maintenance_summary',
+            params: { from: '2025-01-01', to: '2025-12-31', export_format: 'xlsx' },
+            headers: headers
+
+        expect(response).to have_http_status(:ok)
+        expect(response.content_type).to include('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        expect(response.headers['Content-Disposition']).to include('attachment')
+        expect(response.headers['Content-Disposition']).to include('maintenance_summary_')
+        expect(response.headers['Content-Disposition']).to include('.xlsx')
+        expect(response.body).not_to be_empty
+      end
+    end
   end
 end

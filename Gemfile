@@ -36,6 +36,8 @@ gem 'bootsnap', require: false
 # gem "image_processing", "~> 1.2"
 
 gem 'active_model_serializers', '~> 0.10.15'
+gem 'caxlsx', '~> 4.1'
+gem 'caxlsx_rails', '~> 0.6'
 gem 'discard', '~> 1.3'
 gem 'pagy', '~> 9.4'
 gem 'pundit', '~> 2.4'
