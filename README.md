@@ -318,6 +318,19 @@ Accede a: http://localhost:3000/reports/maintenance_summary
 - 💾 Botones de descarga directa (CSV/Excel)
 - 🎨 Interfaz responsive con Bootstrap 5
 
+## 👨‍💻 Documentación de la API
+
+📘 **[Ver Documentación Completa en Postman](https://documenter.getpostman.com/view/2857348/2sB3QFPrYT)**
+
+La documentación incluye:
+- Todos los endpoints disponibles
+- Ejemplos de request/response
+- Códigos de estado HTTP
+- Parámetros y autenticación
+- Ejemplos ejecutables en Postman
+
+---
+
 ## 🔧 Modelos de Datos
 
 ### Vehicle
