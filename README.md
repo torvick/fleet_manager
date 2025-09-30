@@ -1,30 +1,159 @@
 # Fleet Manager API 🚗
 
-Sistema de gestión de flotas de vehículos con API REST y interfaz web. Permite administrar vehículos, servicios de mantenimiento y generar reportes agregados.
+Sistema de gestión de flotas de vehículos con API REST y interfaz web. Permite administrar vehículos, servicios de mantenimiento y generar reportes agregados con exportación a CSV/Excel.
 
 ## 🛠 Tecnologías
 
 - **Ruby** 3.2.2
 - **Rails** 7.1.x
-- **PostgreSQL** 14+
+- **PostgreSQL** 15
+- **Docker** & Docker Compose
 - **JWT** para autenticación
 - **Pundit** para autorización por roles
-- **Discard** para soft delete (eliminación suave)
+- **Discard** para soft delete
 - **RSpec + FactoryBot** para testing
 - **Pagy** para paginación
 - **ActiveModelSerializers** para serialización JSON
+- **Caxlsx** para exportación Excel
 
-## 📦 Instalación
+## 📦 Instalación y Configuración
 
-### Prerrequisitos
+### Opción 1: Docker (Recomendado) 🐳
+
+**La forma más rápida de empezar. Solo necesitas Docker Desktop instalado.**
+
+#### Inicio Rápido
 
 ```bash
-ruby 3.2.2
-postgresql 14+
-bundler
+# 1. Clonar repositorio
+git clone <repository-url>
+cd fleet_manager
+
+# 2. Iniciar con un solo comando
+make start
 ```
 
-### Setup
+¡Listo! La aplicación estará en `http://localhost:3000`
+
+#### Comandos Make Disponibles
+
+```bash
+make help          # Ver todos los comandos (21 disponibles)
+make start         # Configuración inicial completa
+make up            # Iniciar servicios
+make up-d          # Iniciar en segundo plano
+make down          # Detener servicios
+make restart       # Reiniciar servicios
+make logs          # Ver logs de todos los servicios
+make logs-web      # Ver logs del servicio web
+make logs-db       # Ver logs de PostgreSQL
+make shell         # Bash en el contenedor
+make console       # Consola Rails interactiva
+make test          # Ejecutar todos los tests
+make db-create     # Crear base de datos
+make db-migrate    # Ejecutar migraciones
+make db-seed       # Cargar datos de prueba
+make db-reset      # Resetear DB completamente
+make clean         # Eliminar contenedores y volúmenes
+make stop          # Detener aplicación
+```
+
+#### Comandos Docker Compose Manuales
+
+Si prefieres no usar Make:
+
+```bash
+# Construir imágenes
+docker-compose build
+
+# Iniciar servicios en segundo plano
+docker-compose up -d
+
+# Configurar base de datos (primera vez)
+docker-compose exec web bundle exec rails db:create
+docker-compose exec web bundle exec rails db:migrate
+docker-compose exec web bundle exec rails db:seed
+
+# Ver logs
+docker-compose logs -f
+
+# Ejecutar comandos
+docker-compose exec web bundle exec rails console
+docker-compose exec web bundle exec rspec
+docker-compose exec web bash
+
+# Detener servicios
+docker-compose down
+
+# Detener y eliminar todo (incluyendo datos)
+docker-compose down -v
+```
+
+#### Servicios Docker
+
+**PostgreSQL 15:**
+- Puerto: `5433` (puerto externo para evitar conflictos con PostgreSQL local en 5432)
+- Usuario: `postgres`
+- Password: `postgres`
+- Base de datos: `fleet_manager_development`
+- Volumen persistente: `postgres_data`
+- **Nota**: Los contenedores internamente usan el puerto 5432
+
+**Rails (Web):**
+- Puerto: `3000`
+- Hot reload activado
+- Bundle cache persistente
+- Entrypoint automático para DB
+
+#### Variables de Entorno
+
+Configuradas en `docker-compose.yml`:
+
+```yaml
+RAILS_ENV: development
+DATABASE_HOST: db
+DATABASE_USERNAME: postgres
+DATABASE_PASSWORD: postgres
+DATABASE_NAME: fleet_manager_development
+```
+
+#### Problemas Comunes con Docker
+
+**Puerto 3000 ya está en uso:**
+```bash
+lsof -ti:3000 | xargs kill -9
+make restart
+```
+
+**Puerto 5432 ya está en uso:**
+```bash
+# macOS
+brew services stop postgresql
+make restart
+```
+
+**Error de permisos:**
+```bash
+chmod +x bin/docker-entrypoint
+```
+
+**Reinstalar desde cero:**
+```bash
+make clean
+make start
+```
+
+---
+
+### Opción 2: Instalación Local
+
+#### Prerrequisitos
+
+- Ruby 3.2.2
+- PostgreSQL 14+
+- Bundler
+
+#### Setup Local
 
 ```bash
 # 1. Clonar repositorio
@@ -47,11 +176,25 @@ rails server
 
 El servidor estará disponible en `http://localhost:3000`
 
-### Usuarios de prueba
-Después del seed tendrás disponible:
+---
+
+## 👥 Usuarios de Prueba
+
+Después del seed tendrás disponibles:
+
 - **Admin**: `admin@example.com` / `password123` (Todos los permisos)
 - **Manager**: `manager@example.com` / `password123` (CRUD sin eliminar vehículos)
 - **Viewer**: `viewer@example.com` / `password123` (Solo lectura)
+
+## 🌐 Acceso a la Aplicación
+
+**Interfaz Web:**
+- 🏠 Inicio: http://localhost:3000
+- 📊 Reportes: http://localhost:3000/reports/maintenance_summary
+
+**API REST:**
+- 🔗 Base URL: http://localhost:3000/api/v1
+- 🏥 Health Check: http://localhost:3000/health
 
 ## 🔑 Autenticación
 
@@ -66,8 +209,6 @@ Content-Type: application/json
   "password": "password123"
 }
 ```
-
-**Nota**: Puedes usar cualquiera de los usuarios de prueba (admin, manager, viewer) para obtener diferentes niveles de acceso.
 
 **Respuesta:**
 ```json
@@ -106,20 +247,8 @@ GET /api/v1/vehicles
 - `sort` - Ordenar por campo (`brand`, `model`, `year`, `created_at`)
 - `items` - Elementos por página (default: 20)
 - `page` - Página actual
-- `include_discarded` - Incluir vehículos eliminados (solo admin): `true`/`false`
-- `only_discarded` - Solo vehículos eliminados (solo admin): `true`/`false`
-
-**Ejemplos:**
-```bash
-# Vehículos activos (comportamiento por defecto)
-GET /api/v1/vehicles?q=toyota&status=active&sort=year&items=10&page=1
-
-# Solo vehículos eliminados (solo admin)
-GET /api/v1/vehicles?only_discarded=true
-
-# Todos los vehículos incluyendo eliminados (solo admin)
-GET /api/v1/vehicles?include_discarded=true
-```
+- `include_discarded` - Incluir vehículos eliminados (solo admin)
+- `only_discarded` - Solo vehículos eliminados (solo admin)
 
 #### Crear vehículo
 ```bash
@@ -138,30 +267,11 @@ Content-Type: application/json
 }
 ```
 
-#### Ver vehículo
+#### Ver, actualizar y eliminar
 ```bash
 GET /api/v1/vehicles/:id
-```
-
-#### Actualizar vehículo
-```bash
 PUT /api/v1/vehicles/:id
-Content-Type: application/json
-
-{
-  "vehicle": {
-    "status": "in_maintenance"
-  }
-}
-```
-
-#### Eliminar vehículo (Soft Delete)
-```bash
 DELETE /api/v1/vehicles/:id
-```
-
-#### Restaurar vehículo eliminado
-```bash
 POST /api/v1/vehicles/:id/restore
 ```
 
@@ -177,25 +287,8 @@ GET /api/v1/vehicles/:vehicle_id/maintenance_services
 - `priority` - Filtrar por prioridad (`low`, `medium`, `high`)
 - `from` - Fecha desde (YYYY-MM-DD)
 - `to` - Fecha hasta (YYYY-MM-DD)
-- `sort` - Ordenar por campo (`date`, `status`, `priority`, `cost_cents`)
-- `items` - Elementos por página
-- `page` - Página actual
-- `include_discarded` - Incluir servicios eliminados (solo admin): `true`/`false`
-- `only_discarded` - Solo servicios eliminados (solo admin): `true`/`false`
 
-**Ejemplos:**
-```bash
-# Servicios activos (comportamiento por defecto)
-GET /api/v1/vehicles/1/maintenance_services?status=pending&from=2024-01-01&to=2024-12-31
-
-# Solo servicios eliminados (solo admin)
-GET /api/v1/vehicles/1/maintenance_services?only_discarded=true
-
-# Todos los servicios incluyendo eliminados (solo admin)
-GET /api/v1/vehicles/1/maintenance_services?include_discarded=true
-```
-
-#### Crear servicio de mantenimiento
+#### Crear servicio
 ```bash
 POST /api/v1/vehicles/:vehicle_id/maintenance_services
 Content-Type: application/json
@@ -211,105 +304,50 @@ Content-Type: application/json
 }
 ```
 
-#### Ver servicio
-```bash
-GET /api/v1/maintenance_services/:id
-```
-
-#### Actualizar servicio
-```bash
-PUT /api/v1/maintenance_services/:id
-Content-Type: application/json
-
-{
-  "maintenance_service": {
-    "status": "completed",
-    "completed_at": "2024-03-15T10:30:00Z"
-  }
-}
-```
-
-#### Eliminar servicio (Soft Delete)
-```bash
-DELETE /api/v1/maintenance_services/:id
-```
-
-#### Restaurar servicio eliminado
-```bash
-POST /api/v1/maintenance_services/:id/restore
-```
-
 ### Reportes
 
-#### Resumen de mantenimientos
-```bash
-GET /api/v1/reports/maintenance_summary
-```
-
-**Parámetros opcionales:**
-- `from` - Fecha desde (YYYY-MM-DD)
-- `to` - Fecha hasta (YYYY-MM-DD)
-- `vehicle_id` - ID específico de vehículo
-
-**Ejemplo:**
+#### Resumen de mantenimientos (JSON)
 ```bash
 GET /api/v1/reports/maintenance_summary?from=2024-01-01&to=2024-12-31
 ```
 
-**Respuesta:**
-```json
-{
-  "data": {
-    "totals": {
-      "orders_count": 150,
-      "total_cost_cents": 750000
-    },
-    "breakdown_by_status": [
-      {
-        "key": "completed",
-        "services_count": 100,
-        "total_cost_cents": 500000
-      }
-    ],
-    "breakdown_by_vehicle": [
-      {
-        "vehicle_id": 1,
-        "brand": "Toyota",
-        "model": "Corolla",
-        "plate": "ABC123",
-        "services_count": 5,
-        "total_cost_cents": 25000
-      }
-    ],
-    "top_vehicles_by_cost": [
-      {
-        "vehicle_id": 1,
-        "brand": "Toyota",
-        "model": "Corolla",
-        "plate": "ABC123",
-        "services_count": 8,
-        "total_cost_cents": 45000
-      }
-    ]
-  }
-}
+#### Exportar a CSV
+```bash
+GET /api/v1/reports/maintenance_summary?export_format=csv&from=2024-01-01&to=2024-12-31
 ```
 
-## 🌐 Interfaz Web
+#### Exportar a Excel
+```bash
+GET /api/v1/reports/maintenance_summary?export_format=xlsx&from=2024-01-01&to=2024-12-31
+```
 
-Disponible en `http://localhost:3000`:
+**Parámetros:**
+- `export_format` - Formato: `csv`, `xlsx` (opcional, default: JSON)
+- `from` - Fecha desde (opcional)
+- `to` - Fecha hasta (opcional)
+- `vehicle_id` - Filtrar por vehículo específico (opcional)
 
-- **Listado de vehículos** - `/`
-- **Crear vehículo** - `/vehicles/new`
-- **Ver vehículo** - `/vehicles/:id`
-- **Editar vehículo** - `/vehicles/:id/edit`
-- **Servicios de mantenimiento** - `/vehicles/:id/maintenance_services/new`
+## 📊 Reportes Web
 
-## 🔧 Modelos
+### Vista de Reportes
+
+Accede a: http://localhost:3000/reports/maintenance_summary
+
+**Características:**
+- 📅 Filtros por rango de fechas
+- 🚗 Filtro por vehículo específico
+- 📈 Visualización de:
+  - Totales de órdenes y costos
+  - Resumen por estado
+  - Resumen por vehículo
+  - Top 3 vehículos con mayor costo
+- 💾 Botones de descarga directa (CSV/Excel)
+- 🎨 Interfaz responsive con Bootstrap 5
+
+## 🔧 Modelos de Datos
 
 ### Vehicle
 ```ruby
-# Atributos
 vin          # String, único (case-insensitive)
 plate        # String, único (case-insensitive)
 brand        # String, requerido
@@ -324,7 +362,6 @@ has_many :maintenance_services
 
 ### MaintenanceService
 ```ruby
-# Atributos
 vehicle_id     # Foreign Key
 description    # String, requerido
 status         # Enum: pending, in_progress, completed
@@ -340,80 +377,64 @@ belongs_to :vehicle
 
 ### User
 ```ruby
-# Atributos
 email            # String, único (case-insensitive)
 password_digest  # String (bcrypt)
-role            # String, default: admin
+role            # String: admin, manager, viewer
 ```
 
 ## 📋 Reglas de Negocio
 
-1. **VIN y Placa únicos** - Case-insensitive en toda la aplicación
+1. **VIN y Placa únicos** - Case-insensitive
 2. **Status automático de vehículos**:
    - `in_maintenance` si tiene servicios `pending` o `in_progress`
    - `active` cuando no tiene servicios pendientes
 3. **Servicios completed** - Requieren `completed_at` timestamp
-4. **Fechas válidas** - No se permiten fechas futuras en servicios
-5. **Costos en centavos** - Para evitar problemas de precisión decimal
-6. **Soft Delete** - Los registros eliminados se marcan con `discarded_at` y pueden restaurarse
+4. **Fechas válidas** - No se permiten fechas futuras
+5. **Costos en centavos** - Para precisión decimal
+6. **Soft Delete** - Registros eliminados se marcan con `discarded_at`
 
 ## 🧪 Testing
 
 ```bash
-# Ejecutar todas las pruebas
+# Docker
+make test
+
+# Local
 bundle exec rspec
 
-# Ejecutar con cobertura
+# Con cobertura
 COVERAGE=true bundle exec rspec
 
-# Ejecutar pruebas específicas
+# Tests específicos
 bundle exec rspec spec/models/
 bundle exec rspec spec/requests/api/v1/vehicles_spec.rb
 ```
 
-### Factories disponibles
+**Factories disponibles:**
 ```ruby
-# spec/factories/
-create(:vehicle)                    # Vehículo básico
-create(:vehicle, :inactive)         # Vehículo inactivo
-create(:maintenance_service)        # Servicio básico
-create(:maintenance_service, :completed)  # Servicio completado
-create(:user)                       # Usuario admin
+create(:vehicle)
+create(:vehicle, :inactive)
+create(:maintenance_service)
+create(:maintenance_service, :completed)
+create(:user)
 ```
 
 ## ⚙️ Configuración
 
-### Credenciales
-Las variables sensibles se manejan con Rails credentials:
+### Credenciales Rails
 ```bash
-# Ver credenciales actuales
+# Ver credenciales
 rails credentials:show
 
-# Editar credenciales (abre editor)
+# Editar credenciales
 rails credentials:edit
 ```
 
-Estructura de credentials:
+**Estructura:**
 ```yaml
 jwt:
   secret: your-jwt-secret-key
 ```
-
-## 📊 Monitoreo
-
-### Health Check
-```bash
-GET /health
-```
-
-Retorna status de la aplicación y conectividad a BD.
-
-### Logging
-Los logs incluyen:
-- Requests HTTP con parámetros
-- Queries SQL con timing
-- Errores de autenticación
-- Validaciones fallidas
 
 ## 🔒 Seguridad
 
@@ -431,11 +452,10 @@ Los logs incluyen:
 | Editar vehículos/servicios | ✅ | ✅ | ❌ |
 | Eliminar vehículos | ✅ | ❌ | ❌ |
 | Eliminar servicios | ✅ | ❌ | ❌ |
-| Restaurar vehículos/servicios | ✅ | ❌ | ❌ |
+| Restaurar eliminados | ✅ | ❌ | ❌ |
 
-## 🤝 Desarrollo
+## 🤝 Estructura del Proyecto
 
-### Estructura del proyecto
 ```
 app/
 ├── controllers/
@@ -444,114 +464,43 @@ app/
 │   └── concerns/        # Mixins compartidos
 ├── models/              # Modelos ActiveRecord
 ├── services/            # Lógica de negocio
-│   └── reports/         # Servicios de reportes
+│   ├── reports/         # Servicios de reportes
+│   └── exporters/       # Exportadores CSV/Excel
 ├── serializers/         # Serialización JSON
 └── views/               # Vistas HTML (ERB)
 ```
 
-## Reporte de Resumen de Mantenimiento
+## 📊 Archivos de Configuración Docker
 
-Este reporte está disponible tanto como vista web como API, con soporte de exportación en múltiples formatos.
+- `Dockerfile` - Imagen optimizada para producción (multi-stage)
+- `Dockerfile.dev` - Imagen para desarrollo con todas las herramientas
+- `docker-compose.yml` - Orquestación de servicios
+- `.dockerignore` - Archivos excluidos de la imagen
+- `bin/docker-entrypoint` - Script de inicialización automática
+- `Makefile` - Comandos simplificados
+- `.env.example` - Plantilla de variables de entorno
 
-### Vista Web
+## 🚀 Despliegue
 
-Accede al reporte desde la navegación principal o directamente en:
-
-```
-http://localhost:3000/reports/maintenance_summary
-```
-
-**Características:**
-- Filtros por fecha (desde/hasta)
-- Filtro opcional por vehículo específico
-- Visualización de:
-  - Totales de órdenes y costos
-  - Resumen por estado
-  - Resumen por vehículo
-  - Top 3 vehículos con mayor costo
-- Botones de descarga directa para CSV y Excel
-
-### API REST
-
-El endpoint de reporte de mantenimiento también está disponible como API con soporte de exportación en múltiples formatos:
-
-### Formatos Disponibles
-
-- **JSON** (por defecto)
-- **CSV**
-- **XLSX (Excel)**
-
-### Uso
-
-#### Exportar como CSV
+### Producción con Docker
 
 ```bash
-GET /api/v1/reports/maintenance_summary?export_format=csv&from=2025-01-01&to=2025-12-31
+# Usar Dockerfile de producción
+docker build -t fleet-manager .
+docker run -p 3000:3000 fleet-manager
 ```
 
-#### Exportar como Excel (XLSX)
+### Variables de Entorno Producción
 
 ```bash
-GET /api/v1/reports/maintenance_summary?export_format=xlsx&from=2025-01-01&to=2025-12-31
+RAILS_ENV=production
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+RAILS_MASTER_KEY=your-master-key
+SECRET_KEY_BASE=your-secret-key-base
 ```
-
-#### JSON (por defecto)
-
-```bash
-GET /api/v1/reports/maintenance_summary?from=2025-01-01&to=2025-12-31
-```
-
-### Parámetros
-
-- `export_format` (opcional): Formato de exportación (`csv`, `xlsx`). Por defecto: JSON
-- `from` (opcional): Fecha de inicio del rango (formato: YYYY-MM-DD)
-- `to` (opcional): Fecha de fin del rango (formato: YYYY-MM-DD)
-- `vehicle_id` (opcional): ID del vehículo para filtrar
-
-### Ejemplo con cURL
-
-```bash
-# Exportar como CSV
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  "http://localhost:3000/api/v1/reports/maintenance_summary?export_format=csv&from=2025-01-01&to=2025-12-31" \
-  -o report.csv
-
-# Exportar como Excel
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  "http://localhost:3000/api/v1/reports/maintenance_summary?export_format=xlsx&from=2025-01-01&to=2025-12-31" \
-  -o report.xlsx
-```
-
-### Contenido del Reporte
-
-Ambos formatos (CSV y Excel) incluyen las siguientes secciones:
-
-1. **Totales**
-   - Órdenes totales
-   - Costo total
-
-2. **Resumen por Estado**
-   - Estado
-   - Cantidad de servicios
-   - Costo total
-
-3. **Resumen por Vehículo**
-   - ID del vehículo
-   - Marca
-   - Modelo
-   - Placa
-   - Cantidad de servicios
-   - Costo total
-
-4. **Top Vehículos por Costo**
-   - Los 3 vehículos con mayor costo de mantenimiento
-
-### Notas
-
-- Los archivos descargados incluyen un timestamp en el nombre (ej: `maintenance_summary_20250929_143022.csv`)
-- Los costos están formateados en formato decimal (ej: `100.50`)
-- El formato Excel incluye estilos y colores para mejor presentación
 
 ---
 
 **Fleet Manager API v1.0** - Sistema de gestión de flotas vehiculares 🚗✨
+
+**Desarrollado con ❤️ usando Ruby on Rails y Docker**
