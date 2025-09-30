@@ -115,34 +115,8 @@ DATABASE_HOST: db
 DATABASE_USERNAME: postgres
 DATABASE_PASSWORD: postgres
 DATABASE_NAME: fleet_manager_development
+JWT_SECRET: development-jwt-secret-key-change-in-production
 ```
-
-#### Problemas Comunes con Docker
-
-**Puerto 3000 ya está en uso:**
-```bash
-lsof -ti:3000 | xargs kill -9
-make restart
-```
-
-**Puerto 5432 ya está en uso:**
-```bash
-# macOS
-brew services stop postgresql
-make restart
-```
-
-**Error de permisos:**
-```bash
-chmod +x bin/docker-entrypoint
-```
-
-**Reinstalar desde cero:**
-```bash
-make clean
-make start
-```
-
 ---
 
 ### Opción 2: Instalación Local
@@ -470,37 +444,8 @@ app/
 └── views/               # Vistas HTML (ERB)
 ```
 
-## 📊 Archivos de Configuración Docker
-
-- `Dockerfile` - Imagen optimizada para producción (multi-stage)
-- `Dockerfile.dev` - Imagen para desarrollo con todas las herramientas
-- `docker-compose.yml` - Orquestación de servicios
-- `.dockerignore` - Archivos excluidos de la imagen
-- `bin/docker-entrypoint` - Script de inicialización automática
-- `Makefile` - Comandos simplificados
-- `.env.example` - Plantilla de variables de entorno
-
-## 🚀 Despliegue
-
-### Producción con Docker
-
-```bash
-# Usar Dockerfile de producción
-docker build -t fleet-manager .
-docker run -p 3000:3000 fleet-manager
-```
-
-### Variables de Entorno Producción
-
-```bash
-RAILS_ENV=production
-DATABASE_URL=postgresql://user:pass@host:5432/dbname
-RAILS_MASTER_KEY=your-master-key
-SECRET_KEY_BASE=your-secret-key-base
-```
-
 ---
 
 **Fleet Manager API v1.0** - Sistema de gestión de flotas vehiculares 🚗✨
 
-**Desarrollado con ❤️ usando Ruby on Rails y Docker**
+**Desarrollado usando Ruby on Rails y Docker**
