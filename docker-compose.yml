@@ -35,6 +35,7 @@ services:
       DATABASE_USERNAME: postgres
       DATABASE_PASSWORD: postgres
       DATABASE_NAME: fleet_manager_development
+      JWT_SECRET: development-jwt-secret-key-change-in-production
     depends_on:
       db:
         condition: service_healthy

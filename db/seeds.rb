@@ -72,8 +72,9 @@ end
 # -------------------------------------------------
 # Vehículos + servicios
 # -------------------------------------------------
-Vehicle.delete_all
+
 MaintenanceService.delete_all
+Vehicle.delete_all
 
 VEHICLE_COUNT.times do
   brand  = BRANDS_MODELS.keys.sample

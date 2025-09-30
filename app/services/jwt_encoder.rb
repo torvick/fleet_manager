@@ -4,8 +4,8 @@ class JwtEncoder
 
   class << self
     def secret_key
-      Rails.application.credentials.dig(:jwt, :secret) ||
-        ENV['JWT_SECRET'] ||
+      ENV['JWT_SECRET'] ||
+        Rails.application.credentials.dig(:jwt, :secret) ||
         Rails.application.secret_key_base
     end
 
